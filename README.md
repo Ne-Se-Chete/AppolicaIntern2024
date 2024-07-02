@@ -53,7 +53,7 @@ This repository is for a project aimed at enhancing the management and tracking 
 - Go(lang) for the Bot
 - ESP32 for communication with the smart scale and the backend
 - Load cell three wire sensors for the measurment
-5. Our roadmap is ![here](https://github.com/Ne-Se-Chete/AppolicaIntern2024/images/roadmap.png)
+5. Our roadmap is ![here](https://github.com/Ne-Se-Chete/AppolicaIntern2024/blob/main/images/roadmap.png)
 
 6. We have made a daily plan which includes:
 - daily meetings at 10:00
