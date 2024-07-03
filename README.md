@@ -2,22 +2,22 @@
 
 ### Project Description
 
-This repository is for a project aimed at enhancing the management and tracking of BBQ proccess. The application will feature comprehensive notifications, historical data tracking, and estimation tools to optimize the brewing and consumption experience. It will include integrations with Slack, a webpage for order management, and additional predictive and recommendation features. The goal is to provide a ....
+This repository is for a project aimed at enhancing the management and tracking of BBQ proccess. The application will feature comprehensive notifications, historical data tracking, and estimation tools to optimize the cooking and consumption experience. It will include integrations with Slack, a webpage and Slack bot for order management, and additional predictive and recommendation features. The goal is to provide the user how many kgs are left in the gas tank and when it must be refiled.
 
-### To-Do List
+### Features of the project
 
 1. [ ] Measure the weight of the bottle
 2. [ ] Create an estimation of how long the bottle will last based on:
    - [ ] Which ones have been rotated
    - [ ] How many rotations
-3. [ ] Track the history of brews
+3. [ ] Track the history of the cooking
 4. [ ] Set up notifications (when to refill, if you've forgotten)
 
 ### Bonus Tasks
 
 - **Slack Bot:**
   - Dependent on:
-    - [ ] Hard-coded brew times
+    - [ ] Hard-coded cooking times
   - Features:
     - [ ] Predict beer consumption
     - [ ] Manage orders
@@ -69,6 +69,22 @@ This repository is for a project aimed at enhancing the management and tracking 
 3. <del>To do testing with the Bubble io<del>
 4. <del>To fix the DB schematic<del>
 5. <del>To discuss further the idea for the software<del>
+
+### What we did
+1. We had daily meeting on which we discussed the plan for the day and we made some changes
+2. We find a bug with the sensors which we fixed
+3. We made the DB and we tested the connection to it
+4. We fixed the DB schematic and we have ideas for future expansion
+
+
+## Day 3
+1. <del>To have a daily meeting <del>
+2. <del> To fix the 3D printed modules for the sensors because they are too big (with sandpaper)<del>
+3. To test the scale with the 3D printed modules
+4. To cut a wooden board for the scale body
+5. To desing the fronend it bubble io
+6. To make basic endpoints in bubble io 
+7. To connect the esp32 to the backend
 
 ## To be cheked
 - ngrok.com
