@@ -80,12 +80,25 @@ This repository is for a project aimed at enhancing the management and tracking 
 ## Day 3
 1. <del>To have a daily meeting <del>
 2. <del> To fix the 3D printed modules for the sensors because they are too big (with sandpaper)<del>
-3. To test the scale with the 3D printed modules
-4. To cut a wooden board for the scale body
-5. To desing the fronend it bubble io
-6. To make basic endpoints in bubble io 
-7. To connect the esp32 to the backend
+3. <del>To test the scale with the 3D printed modules<del>
+4. <del>To cut a wooden board for the scale body<del>
+5. <del>To desing the fronend it bubble io<del>
+6. <del>To make basic endpoints in bubble io <del>
+<del> 7. To connect the esp32 to the backend <del>
+
+## What we did
+1. We had a daily meet on which discussed the plan for the day.
+2. The 3D components were a little bigger so we made them smaller with a sandpaper.
+3. The scale had a little off-set because it wasn't levered properly but when we made it with a wooden board and the sensors with the 3D printed parts it was much better.
+4. We made some basic desinges on how the frontend would look like
+5. We made the backend endpoints so we can add values to the DB
+6. We made a basic code that can access the bubble io's DB. 
 
 ## To be cheked
 - ngrok.com
+- да се направят папки optionally за дните
 - ДА има в main page-а multiple choice dropdown Който да ни казва кой е активния и така да направим в базата данни да се запазват и после да се пращат
+- как да се направи bubble io-то за изчисляване на данни - дали да се записва в база данни или някак по друг начин
+
+
+- да направя /finilize, /order smth quantity
