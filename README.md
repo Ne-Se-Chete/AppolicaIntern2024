@@ -84,7 +84,7 @@ This repository is for a project aimed at enhancing the management and tracking 
 4. <del>To cut a wooden board for the scale body<del>
 5. <del>To desing the fronend it bubble io<del>
 6. <del>To make basic endpoints in bubble io <del>
-<del> 7. To connect the esp32 to the backend <del>
+7. <del>To connect the esp32 to the backend <del>
 
 ## What we did
 1. We had a daily meet on which discussed the plan for the day.
@@ -93,6 +93,7 @@ This repository is for a project aimed at enhancing the management and tracking 
 4. We made some basic desinges on how the frontend would look like
 5. We made the backend endpoints so we can add values to the DB
 6. We made a basic code that can access the bubble io's DB. 
+7. Made some features with the bot - it can now recieve orders and add them to the db
 
 ## To be cheked
 - ngrok.com
