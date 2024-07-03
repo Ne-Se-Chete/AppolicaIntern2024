@@ -1,6 +1,16 @@
 #include <HX711_ADC.h>
 #include <EEPROM.h>
 #define EEPROM_SIZE 16
+#include <GxEPD.h>
+#include <GxGDEH0154D67/GxGDEH0154D67.h>  // 1.54" b/w 200x200, SSD1681
+#include GxEPD_BitmapExamples
+#include <Fonts/FreeSansBold18pt7b.h>
+#include <GxIO/GxIO_SPI/GxIO_SPI.h>
+#include <GxIO/GxIO.h>
+
+GxIO_Class io(SPI, /*CS=5*/ SS, /*DC=*/ 17, /*RST=*/ 16);
+GxEPD_Class display(io, /*RST=*/ 16, /*BUSY=*/ 4);
+
 
 //pins:
 const int HX711_dout = 22; //mcu > HX711 dout pin
@@ -11,66 +21,46 @@ HX711_ADC LoadCell(HX711_dout, HX711_sck);
 
 const int calVal_eepromAdress = 0;
 unsigned long t = 0;
+float initialMeasurement = 0;
+int readingsForAverage = 50;
+const int serialPrintInterval = 200; //increase value to slow down serial print activity
+bool cooking = false;
+
 
 void setup() {
-  Serial.begin(115200); delay(10);
+  Serial.begin(115200); 
+  delay(10);
   Serial.println();
   Serial.println("Starting...");
-  EEPROM.begin(EEPROM_SIZE);
-  int cal_val_eeprom = 0;
-
-  LoadCell.begin();
-  //LoadCell.setReverseOutput(); //uncomment to turn a negative output value to positive
-  unsigned long stabilizingtime = 2000; // preciscion right after power-up can be improved by adding a few seconds of stabilizing time
-  boolean _tare = false; //set this to false if you don't want tare to be performed in the next step
-  LoadCell.start(stabilizingtime, _tare);
-  if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
-    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
-    while (1);
-  }
-  else {
-    cal_val_eeprom = EEPROM.readFloat(calVal_eepromAdress);
-    if(cal_val_eeprom != 0) {
-        changeFromSavedCalFactor();
-        Serial.println("Startup is complete");
-    }
-    else {
-      Serial.println("The sensors should be calibrated!");
-      while (!LoadCell.update());
-        calibrate();
-    }
-  }
+  startLoadCell();
+  initialMeasurement = LoadCell.getData();
 }
 
 void loop() {
-  static boolean newDataReady = 0;
-  const int serialPrintInterval = 200; //increase value to slow down serial print activity
+  float avrgReading = averageReading(readingsForAverage);
+  if(!cooking) {
+    if(initialMeasurement - avrgReading > 20) {
+    delay(5000);
+    if(initialMeasurement - avrgReading > 20)
+      cooking = true;
+  }
+  }
+  
+  int hasStoppedCooking = 0;
+  int newWeight = avrgReading;
+  while(cooking) {
+    //5,6 gr/min
+    delay(30000);
+    int tmpWeight = averageReading(readingsForAverage);
+    if(newWeight - tmpWeight < 3)
+      hasStoppedCooking++;
+    else
+      newWeight = avrgReading;
 
-  // check for new data/start next conversion:
-  if (LoadCell.update()) newDataReady = true;
-
-  // get smoothed value from the dataset:
-  if (newDataReady) {
-    if (millis() > t + serialPrintInterval) {
-      float i = LoadCell.getData();
-      Serial.print("Load_cell output val: ");
-      Serial.println(i);
-      newDataReady = 0;
-      t = millis();
-    }
+    if(hasStoppedCooking > 1)
+      cooking = false;
   }
 
-  // receive command from serial terminal
-  if (Serial.available() > 0) {
-    char inByte = Serial.read();
-    if (inByte == 't') LoadCell.tareNoDelay(); //tare
-    else if (inByte == 'r') calibrate(); //calibrate
-  }
-
-  // check if last tare operation is complete
-  if (LoadCell.getTareStatus() == true) {
-    Serial.println("Tare complete");
-  }
 
 }
 
@@ -176,3 +166,64 @@ void changeFromSavedCalFactor() {
   Serial.println("End change calibration value");
   Serial.println("***");
 }
+
+void startLoadCell() {
+  EEPROM.begin(EEPROM_SIZE);
+  int cal_val_eeprom = 0;
+
+  LoadCell.begin();
+  //LoadCell.setReverseOutput(); //uncomment to turn a negative output value to positive
+  unsigned long stabilizingtime = 2000; // preciscion right after power-up can be improved by adding a few seconds of stabilizing time
+  boolean _tare = false; //set this to false if you don't want tare to be performed in the next step
+  LoadCell.start(stabilizingtime, _tare);
+  if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
+    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+    while (1);
+  }
+  else {
+    cal_val_eeprom = EEPROM.readFloat(calVal_eepromAdress);
+    if(cal_val_eeprom != 0) {
+        changeFromSavedCalFactor();
+        Serial.println("Startup is complete");
+    }
+    else {
+      Serial.println("The sensors should be calibrated!");
+      while (!LoadCell.update());
+        calibrate();
+    }
+  }
+}
+
+float averageReading(int timesToRead) {
+  float sum = 0;
+  static boolean newDataReady = 0;
+  for(int i = 0; i < timesToRead; i++) {
+    if (LoadCell.update()) newDataReady = true;
+
+  // get smoothed value from the dataset:
+    if (newDataReady) {
+      if (millis() > t + serialPrintInterval) {
+        float measurement = LoadCell.getData();
+        sum += measurement;
+        Serial.print("Load_cell output val: ");
+        Serial.println(measurement);
+        newDataReady = 0;
+        t = millis();
+      }
+    }
+  }
+
+  return sum/timesToRead;
+}
+
+  // // receive command from serial terminal
+  // if (Serial.available() > 0) {
+  //   char inByte = Serial.read();
+  //   if (inByte == 't') LoadCell.tareNoDelay(); //tare
+  //   else if (inByte == 'r') calibrate(); //calibrate
+  // }
+
+  // // check if last tare operation is complete
+  // if (LoadCell.getTareStatus() == true) {
+  //   Serial.println("Tare complete");
+  // }
