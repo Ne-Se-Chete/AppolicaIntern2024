@@ -102,4 +102,6 @@ This repository is for a project aimed at enhancing the management and tracking 
 - как да се направи bubble io-то за изчисляване на данни - дали да се записва в база данни или някак по друг начин
 
 
+- отчет 10 стр
+
 - да направя /finilize, /order smth quantity
