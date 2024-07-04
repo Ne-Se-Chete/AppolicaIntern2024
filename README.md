@@ -116,4 +116,3 @@ This repository is for a project aimed at enhancing the management and tracking 
 - да се направят папки optionally за дните
 - ДА има в main page-а multiple choice dropdown Който да ни казва кой е активния и така да направим в базата данни да се запазват и после да се пращат
 - как да се направи bubble io-то за изчисляване на данни - дали да се записва в база данни или някак по друг начин
-- да направя /finilize, /order smth quantity
