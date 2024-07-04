@@ -1,12 +1,14 @@
 package main
 
 import (
+	"container/heap"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/slack-go/slack/socketmode"
 )
 
+// Structs
 type User struct {
 	ID   string `json:"_id"`
 	Name string `json:"name"`
@@ -24,6 +27,37 @@ type Item struct {
 	ID   string `json:"_id"`
 	Name string `json:"item name"`
 }
+
+type ItemInfo struct {
+	ItemName      string `json:"item name"`
+	SecondsToCook int    `json:"seconds to cook"`
+	CapacityOnGrill int  `json:"capacity on grill"`
+}
+
+type Order struct {
+	Item     string
+	Quantity int
+	CookTime int
+}
+
+// PriorityQueue implementation
+type PriorityQueue []*Order
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+func (pq PriorityQueue) Less(i, j int) bool { return pq[i].Quantity < pq[j].Quantity }
+func (pq PriorityQueue) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
+func (pq *PriorityQueue) Push(x interface{}) { *pq = append(*pq, x.(*Order)) }
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	order := old[n-1]
+	*pq = old[:n-1]
+	return order
+}
+
+var orderQueue PriorityQueue
+var orderDeadline time.Time
+var ordersEnabled bool
 
 func main() {
 	loadEnv()
@@ -42,8 +76,7 @@ func main() {
 }
 
 func loadEnv() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 }
@@ -73,7 +106,7 @@ func handleEvents(socketClient *socketmode.Client, client *slack.Client) {
 	for evt := range socketClient.Events {
 		switch evt.Type {
 		case socketmode.EventTypeInteractive:
-			handleInteractiveMessage(client, evt.Data.(slack.InteractionCallback))
+			// Implement interactive event handling if needed
 		case socketmode.EventTypeSlashCommand:
 			cmd, ok := evt.Data.(slack.SlashCommand)
 			if !ok {
@@ -89,76 +122,324 @@ func handleEvents(socketClient *socketmode.Client, client *slack.Client) {
 }
 
 func handleSlashCommand(client *slack.Client, cmd slack.SlashCommand) {
-	switch {
-	case cmd.Command == "/hi":
-		_, _, err := client.PostMessage(cmd.ChannelID, slack.MsgOptionText("Hi, I'm Test Bot. I got your command.", false))
-		if err != nil {
-			log.Printf("Failed to post message: %v", err)
-		}
-	case cmd.Command == "/order":
+	switch cmd.Command {
+	case "/hi":
+		postMessage(client, cmd.ChannelID, "Hi, I'm Slack Bot. I got your command.")
+	case "/order":
 		handleOrder(client, cmd)
+	case "/start":
+		handleStart(client, cmd)
+	case "/help":
+		message := "This is a Slack bot for managing orders. Here's how it works:\n" +
+			"1. Type `/start {time}` to start a new session for orders. The `{time}` argument sets a deadline after which no new orders will be accepted.\n" +
+			"2. Type `/order {item_from_the_menu} {quantity}` to place a new order. The `{item_from_the_menu}` argument specifies what you want to eat, and the `quantity` specifies how much you want.\n" +
+			"NOTE: You can see the full menu with the command `/menu`."
+		postMessage(client, cmd.ChannelID, message)
+	case "/menu":
+		handleMenu(client, cmd)
 	default:
 		log.Printf("Unknown command: %s", cmd.Command)
 	}
 }
 
+
+func handleStart(client *slack.Client, cmd slack.SlashCommand) {
+	args := strings.Fields(cmd.Text)
+	if len(args) < 1 {
+		postMessage(client, cmd.ChannelID, "Please specify the deadline time (in format HH:MM).")
+		return
+	}
+
+	timeArg := args[0]
+	deadline, err := time.Parse("15:04", timeArg)
+	if err != nil {
+		postMessage(client, cmd.ChannelID, "Invalid time format. Please use HH:MM format.")
+		return
+	}
+
+	now := time.Now()
+	orderDeadline = time.Date(now.Year(), now.Month(), now.Day(), deadline.Hour(), deadline.Minute(), 0, 0, now.Location())
+	ordersEnabled = true
+	orderQueue = PriorityQueue{}
+
+	response := fmt.Sprintf("Order session started. You can place orders until %s.", orderDeadline.Format("15:04"))
+	postMessage(client, cmd.ChannelID, response)
+
+	go func() {
+		time.Sleep(time.Until(orderDeadline))
+		summarizeOrders(client, cmd.ChannelID)
+	}()
+}
+
 func handleOrder(client *slack.Client, cmd slack.SlashCommand) {
+	if !ordersEnabled {
+		postMessage(client, cmd.ChannelID, "Orders are not enabled. Start a new session with /start {time}.")
+		return
+	}
+
 	args := strings.Fields(cmd.Text)
 	if len(args) < 2 {
-		_, _, err := client.PostMessage(cmd.ChannelID, slack.MsgOptionText("Please specify the item and quantity.", false))
-		if err != nil {
-			log.Printf("Failed to post message: %v", err)
-		}
+		postMessage(client, cmd.ChannelID, "Please specify the item and quantity.")
 		return
 	}
 
 	item := args[0]
-	quantity := args[1]
+	quantity, err := strconv.Atoi(args[1])
+	if err != nil {
+		postMessage(client, cmd.ChannelID, "Invalid quantity. Please enter a number.")
+		return
+	}
 
 	userID := getUserID("Pencho")
 	if userID == "" {
-		_, _, err := client.PostMessage(cmd.ChannelID, slack.MsgOptionText("User ID not found.", false))
-		if err != nil {
-			log.Printf("Failed to post message: %v", err)
-		}
+		postMessage(client, cmd.ChannelID, "User ID not found.")
 		return
 	}
 
 	itemID := getItemID(item)
 	if itemID == "" {
-		_, _, err := client.PostMessage(cmd.ChannelID, slack.MsgOptionText("Item not found.", false))
-		if err != nil {
-			log.Printf("Failed to post message: %v", err)
-		}
+		postMessage(client, cmd.ChannelID, "Item not found.")
 		return
 	}
 
-	loc := time.FixedZone("EEST", 2*30)
+	loc := time.FixedZone("EEST", 2*60*60)
 	startTime := time.Now().In(loc).Format("Jan 2, 2006 03:04 pm")
 
 	order := map[string]interface{}{
-		"ordered item":   itemID,
-		"owner":   userID,
-		"quantity":  quantity,
-		"start time": startTime,
+		"ordered item": itemID,
+		"owner":        userID,
+		"quantity":     quantity,
+		"start time":   startTime,
 	}
 
 	sendOrder(order)
-	response := fmt.Sprintf("Order placed: %s %s", item, quantity)
-	_, _, err := client.PostMessage(cmd.ChannelID, slack.MsgOptionText(response, false))
-	if err != nil {
-		log.Printf("Failed to post message: %v", err)
+
+	response := fmt.Sprintf("Order placed: %s %d", item, quantity)
+	postMessage(client, cmd.ChannelID, response)
+
+	itemData := fetchItemData()
+	itemInfo, ok := itemData[item]
+	if !ok {
+		postMessage(client, cmd.ChannelID, "Failed to fetch item data.")
+		return
 	}
+	cookTime := calculateCookingTime(quantity, itemInfo.CapacityOnGrill, itemInfo.SecondsToCook)
+	newOrder := &Order{
+		Item:     item,
+		Quantity: quantity,
+		CookTime: cookTime,
+	}
+
+	heap.Push(&orderQueue, newOrder)
 }
 
+func fetchItemData() map[string]ItemInfo {
+	url := os.Getenv("SERVER_ITEM")
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		return nil
+	}
+
+	req.Header.Add("Authorization", "Bearer "+os.Getenv("BEARER_TOKEN"))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Failed to send request: %v", err)
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Error response from server: %v", resp.Status)
+		return nil
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read response body: %v", err)
+		return nil
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		log.Printf("Failed to parse response body: %v", err)
+		return nil
+	}
+
+	itemData := make(map[string]ItemInfo)
+	if response, ok := result["response"].(map[string]interface{}); ok {
+		if results, ok := response["results"].([]interface{}); ok {
+			for _, res := range results {
+				if record, ok := res.(map[string]interface{}); ok {
+					itemName, _ := record["item name"].(string)
+					secondsToCook, _ := record["seconds to cook"].(float64)
+					capacityOnGrill, _ := record["capacity on grill"].(float64)
+					itemData[itemName] = ItemInfo{
+						ItemName:        itemName,
+						SecondsToCook:   int(secondsToCook),
+						CapacityOnGrill: int(capacityOnGrill),
+					}
+				}
+			}
+		}
+	}
+
+	return itemData
+}
+
+func handleMenu(client *slack.Client, cmd slack.SlashCommand) {
+	url := "https://smart-scale.bubbleapps.io/version-test/api/1.1/obj/Grill Item"
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Failed to send request: %v", err)
+		postMessage(client, cmd.ChannelID, "Failed to fetch the menu.")
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Error response from server: %v", resp.Status)
+		postMessage(client, cmd.ChannelID, "Failed to fetch the menu.")
+		return
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read response body: %v", err)
+		postMessage(client, cmd.ChannelID, "Failed to fetch the menu.")
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		log.Printf("Failed to parse response body: %v", err)
+		postMessage(client, cmd.ChannelID, "Failed to fetch the menu.")
+		return
+	}
+
+	var menuItems []string
+	if response, ok := result["response"].(map[string]interface{}); ok {
+		if results, ok := response["results"].([]interface{}); ok {
+			for _, res := range results {
+				if record, ok := res.(map[string]interface{}); ok {
+					if itemName, ok := record["item name"].(string); ok {
+						menuItems = append(menuItems, itemName)
+					}
+				}
+			}
+		}
+	}
+
+	if len(menuItems) == 0 {
+		postMessage(client, cmd.ChannelID, "No items found in the menu.")
+		return
+	}
+
+	menuMessage := "Here is the menu:\n" + strings.Join(menuItems, "\n")
+	postMessage(client, cmd.ChannelID, menuMessage)
+}
+
+
+func calculateCookingTime(quantity, capacity, baseTime int) int {
+	batches := quantity / capacity
+	if quantity%capacity != 0 {
+		batches++
+	}
+	return batches * baseTime
+}
+
+func summarizeOrders(client *slack.Client, channelID string) {
+	ordersEnabled = false
+	if len(orderQueue) == 0 {
+		postMessage(client, channelID, "No orders were placed.")
+		return
+	}
+
+	itemData := fetchItemData()
+	if itemData == nil {
+		postMessage(client, channelID, "Failed to fetch item data.")
+		return
+	}
+
+	orderMap := make(map[string]int)
+	for orderQueue.Len() > 0 {
+		order := heap.Pop(&orderQueue).(*Order)
+		orderMap[order.Item] += order.Quantity
+	}
+
+	var summaryBuilder strings.Builder
+	summaryBuilder.WriteString("You have collectively ordered:\n")
+
+	counter := 1
+	totalCookingTime := 0
+
+	for item, quantity := range orderMap {
+		itemInfo, ok := itemData[item]
+		if !ok {
+			itemInfo = ItemInfo{SecondsToCook: 0, CapacityOnGrill: 1}
+		}
+		itemCookingTime := calculateCookingTime(quantity, itemInfo.CapacityOnGrill, itemInfo.SecondsToCook)
+		totalCookingTime += itemCookingTime
+		summaryBuilder.WriteString(fmt.Sprintf("%d. %s x%d -> %d seconds to cook\n", counter, item, quantity, totalCookingTime))
+		counter++
+
+		orderSummary := map[string]interface{}{
+			"item ordered":    getItemID(item),
+			"seconds to cook": totalCookingTime,
+			"summed quantity": quantity,
+		}
+		sendOrderSummary(orderSummary)
+
+	}
+
+	summaryBuilder.WriteString("The order won't be received now - start a new order session with /start {time}.")
+
+	postMessage(client, channelID, summaryBuilder.String())
+}
+
+func sendOrderSummary(orderSummary map[string]interface{}) {
+	client := &http.Client{}
+	url := os.Getenv("SERVER_TODAYS_ORDER")
+
+	orderSummaryJSON, err := json.Marshal(orderSummary)
+	if err != nil {
+		log.Printf("Failed to marshal order summary: %v", err)
+		return
+	}
+
+	req, err := http.NewRequest("POST", url, strings.NewReader(string(orderSummaryJSON)))
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		return
+	}
+
+	req.Header.Add("Authorization", "Bearer "+os.Getenv("BEARER_TOKEN"))
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Failed to send request: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Error response from server: %v", resp.Status)
+		return
+	}
+
+	log.Println("Order summary sent successfully")
+}
+
+
 func getUserID(userName string) string {
-	url := os.Getenv("SERVER_USERS")
-	return getIDFromServer(url, userName, "name")
+	return getIDFromServer(os.Getenv("SERVER_USERS"), userName, "name")
 }
 
 func getItemID(itemName string) string {
-	url := os.Getenv("SERVER_ITEM")
-	return getIDFromServer(url, itemName, "item name")
+	return getIDFromServer(os.Getenv("SERVER_ITEM"), itemName, "item name")
 }
 
 func getIDFromServer(url, searchValue, searchKey string) string {
@@ -247,23 +528,8 @@ func sendOrder(order map[string]interface{}) {
 	log.Println("Order sent successfully")
 }
 
-func handleInteractiveMessage(client *slack.Client, interaction slack.InteractionCallback) {
-	switch interaction.CallbackID {
-	case "kufte_order":
-		if len(interaction.ActionCallback.BlockActions) > 0 {
-			selectedOption := interaction.ActionCallback.BlockActions[0].SelectedOption.Value
-			order := "kufte " + selectedOption
-			response := "Order - " + order
-			_, _, err := client.PostMessage(interaction.Channel.ID, slack.MsgOptionText(response, false))
-			if err != nil {
-				log.Printf("Failed to post message: %v", err)
-				return
-			}
-			log.Printf("Message sent successfully.")
-		} else {
-			log.Printf("No block actions found in interaction callback.")
-		}
-	default:
-		log.Printf("Unhandled interactive message callback: %s", interaction.CallbackID)
+func postMessage(client *slack.Client, channelID, message string) {
+	if _, _, err := client.PostMessage(channelID, slack.MsgOptionText(message, false)); err != nil {
+		log.Printf("Failed to post message: %v", err)
 	}
 }
