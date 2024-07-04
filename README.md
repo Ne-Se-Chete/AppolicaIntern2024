@@ -108,15 +108,12 @@ This repository is for a project aimed at enhancing the management and tracking 
 3. We can now display the on the frontend the data.
 4. We made some pages including - homepage (which will hold the data for the current cooking session), hisotry gas (which will display the usage of the gas and time time when the grill was working), history order (which will display the last 4 orders and who ordered them) and single grill history.
 5. We start developing the bot functionalities for starting a new order and then finishing it.
- 
+6. We changed the struct of the DB again because we needed more things to add.
+
 
 ## To be cheked
 - ngrok.com
 - да се направят папки optionally за дните
 - ДА има в main page-а multiple choice dropdown Който да ни казва кой е активния и така да направим в базата данни да се запазват и после да се пращат
 - как да се направи bubble io-то за изчисляване на данни - дали да се записва в база данни или някак по друг начин
-
-
-- отчет 10 стр
-
 - да направя /finilize, /order smth quantity
