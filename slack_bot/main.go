@@ -133,7 +133,10 @@ func handleSlashCommand(client *slack.Client, cmd slack.SlashCommand) {
 		message := "This is a Slack bot for managing orders. Here's how it works:\n" +
 			"1. Type `/start {time}` to start a new session for orders. The `{time}` argument sets a deadline after which no new orders will be accepted.\n" +
 			"2. Type `/order {item_from_the_menu} {quantity}` to place a new order. The `{item_from_the_menu}` argument specifies what you want to eat, and the `quantity` specifies how much you want.\n" +
-			"NOTE: You can see the full menu with the command `/menu`."
+			"NOTE: You can see the full menu with the command `/menu` and if you want to add a new product, you need to type" + 
+			" `/menu add {item} {capacity_on_grill} {price} {seconds_to_cook}` where {item} is the product you want to add, " +
+			"{capacity_on_grill} is how many of this items can be placed on the grill at the same type, {price} is how much it costs "+
+			"and {seconds_to_cook} is how many seconds it must be cooked (approximately)."
 		postMessage(client, cmd.ChannelID, message)
 	case "/menu":
 		handleMenu(client, cmd)
@@ -290,7 +293,67 @@ func fetchItemData() map[string]ItemInfo {
 }
 
 func handleMenu(client *slack.Client, cmd slack.SlashCommand) {
-	url := "https://smart-scale.bubbleapps.io/version-test/api/1.1/obj/Grill Item"
+	url := os.Getenv("SERVER_ITEM")
+		if url == "" {
+			log.Printf("SERVER_ITEM environment variable is not set")
+			postMessage(client, cmd.ChannelID, "Failed to add the item.")
+			return
+		}
+	args := strings.Fields(cmd.Text)
+
+	if len(args) > 0 && args[0] == "add" && len(args) > 4 {
+		// Handle adding an item to the menu
+
+		item := args[1]
+		capacityOnGrill := args[2]
+		price := args[3]
+		secondsToCook := args[4]
+
+		// Create the payload for the POST request
+		newItem := map[string]interface{}{
+			"item name":        item,
+			"capacity on grill": capacityOnGrill,
+			"price":            price,
+			"seconds to cook":  secondsToCook,
+		}
+
+		newItemJSON, err := json.Marshal(newItem)
+		if err != nil {
+			log.Printf("Failed to marshal new item: %v", err)
+			postMessage(client, cmd.ChannelID, "Failed to add the item.")
+			return
+		}
+
+		req, err := http.NewRequest("POST", url, strings.NewReader(string(newItemJSON)))
+		if err != nil {
+			log.Printf("Failed to create request: %v", err)
+			postMessage(client, cmd.ChannelID, "Failed to add the item.")
+			return
+		}
+
+		req.Header.Add("Authorization", "Bearer "+os.Getenv("BEARER_TOKEN"))
+		req.Header.Add("Content-Type", "application/json")
+
+		httpClient := &http.Client{}
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			log.Printf("Failed to send request: %v", err)
+			postMessage(client, cmd.ChannelID, "Failed to add the item.")
+			return
+		}
+		defer resp.Body.Close()
+		
+		if resp.StatusCode != http.StatusCreated {
+			log.Printf("Error response from server: %v", resp.Status)
+			postMessage(client, cmd.ChannelID, "Failed to add the item.")
+			return
+		}
+
+		postMessage(client, cmd.ChannelID, "Successfully added item: "+item)
+		return
+	}
+
+	// Handle fetching and displaying the menu
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("Failed to send request: %v", err)
