@@ -37,8 +37,8 @@ HX711_ADC LoadCell(HX711_dout, HX711_sck);
 const int calVal_eepromAdress = 0;
 unsigned long t = 0;
 float initialMeasurement = 0;
-int readingsForAverage = 10;
-const int serialPrintInterval = 500; //increase value to slow down serial print activity
+int readingsForAverage = 20;
+const int serialPrintInterval = 100; //increase value to slow down serial print activity
 int cooking = 0;
 float avrgReading;
 
@@ -117,6 +117,7 @@ void loop() {
       post_to_grill_endpoint(initialMeasurement, newWeight, start_cooking_time);
       initialMeasurement = tmpWeight;
       cooking = 0;
+      post_end_cooking();
       displayValue(calculateGasLeft(newWeight));
     }
   }
@@ -372,3 +373,14 @@ void post_start_cooking() {
   }
 }
 
+void post_end_cooking() {
+  // Create the JSON object
+  String jsonData = String("{\"status\": \"no\"}");
+
+  // Send the data to the server
+  if (WiFi.status() == WL_CONNECTED) {
+    my_post_request(jsonData, grillStatus);
+  } else {
+    Serial.println("Error in WiFi connection");
+  }
+}
