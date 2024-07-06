@@ -3,6 +3,7 @@ package main
 import (
 	"container/heap"
 	"encoding/json"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,10 +12,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"context"
 
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/socketmode"
+	"github.com/sashabaranov/go-openai"
 )
 
 // Structs
@@ -140,10 +143,138 @@ func handleSlashCommand(client *slack.Client, cmd slack.SlashCommand) {
 		postMessage(client, cmd.ChannelID, message)
 	case "/menu":
 		handleMenu(client, cmd)
+	case "/receipt":
+		handleReceipt(client, cmd)
 	default:
 		log.Printf("Unknown command: %s", cmd.Command)
 	}
 }
+
+
+
+func handleReceipt(client *slack.Client, cmd slack.SlashCommand) {
+	channelID := os.Getenv("CHANNEL_ID")
+
+	historyParams := slack.GetConversationHistoryParameters{
+		ChannelID: channelID,
+		Limit:     10,
+	}
+
+	history, err := client.GetConversationHistory(&historyParams)
+	if err != nil {
+		postMessage(client, cmd.ChannelID, "Error getting conversation history.")
+		return
+	}
+
+	// Find the latest image file
+	var latestFile *slack.File
+	for _, msg := range history.Messages {
+		if len(msg.Files) > 0 {
+			file := msg.Files[0] // Get the first file from the message
+			if file.Mimetype == "image/png" || file.Mimetype == "image/jpeg" { // Check for image type
+				latestFile = &file // Assign the file pointer to latestFile
+				break
+			}
+		}
+	}
+
+	if latestFile == nil {
+		postMessage(client, cmd.ChannelID, "No image found in the last 10 messages.")
+		return
+	}
+
+	// Download the image with proper authentication
+	req, err := http.NewRequest("GET", latestFile.URLPrivateDownload, nil)
+	if err != nil {
+		postMessage(client, cmd.ChannelID, "Error creating request.")
+		return
+	}
+	req.Header.Add("Authorization", "Bearer "+os.Getenv("SLACK_BOT_TOKEN"))
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		postMessage(client, cmd.ChannelID, "Error downloading image.")
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read the image data
+	imageData, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		postMessage(client, cmd.ChannelID, "Error reading image data.")
+		return
+	}
+
+	// Save the image locally
+	fileName := "./images/" + latestFile.Name
+	err = ioutil.WriteFile(fileName, imageData, 0644)
+	if err != nil {
+		postMessage(client, cmd.ChannelID, "Error saving image locally.")
+		return
+	}
+
+	fmt.Printf("Image saved locally as: %s\n", fileName)
+	postMessage(client, cmd.ChannelID, "Image saved locally.")
+
+	//TODO: This doesn't work but with the python code it does
+	// result, err := detectImage(fileName)
+	// if err != nil {
+	// 	log.Fatalf("Error detecting image: %v", err)
+	// }
+	// postMessage(client, cmd.ChannelID, "Assistant:" + result)
+}
+
+
+func detectImage(imagePath string) (string, error) {
+	var model = "gpt-4o"
+	var apiKey = os.Getenv("OPENAI_API_KEY")
+	var temperature float32 = 0.0
+
+	client := openai.NewClient(apiKey)
+
+	base64Image, err := encodeImage64(imagePath)
+	if err != nil {
+		log.Fatalf("Failed to encode image: %v", err)
+	}
+
+	messages := []openai.ChatCompletionMessage{
+		{Role: "system", Content: "You are a helpful assistant. Describe the image in one sentence."},
+		{Role: "user", Content: fmt.Sprintf(`{"type": "text", "text": "Describe the image."},
+                                             {"type": "image_url", "image_url": {"url": "data:image/png;base64,%s"}}`, base64Image)},
+	}
+
+	ctx := context.Background()
+
+	response, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model:       model,
+		Messages:    messages,
+		Temperature: temperature,
+	})
+
+	if err != nil {
+		log.Fatalf("ChatCompletion error: %v", err)
+	}
+
+	return response.Choices[0].Message.Content, nil
+}
+
+func encodeImage64(imagePath string) (string, error) {
+	imageFile, err := os.Open(imagePath)
+	if err != nil {
+		return "", err
+	}
+	defer imageFile.Close()
+
+	imageData, err := ioutil.ReadAll(imageFile)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(imageData), nil
+}
+
+
+
 
 
 func handleStart(client *slack.Client, cmd slack.SlashCommand) {
