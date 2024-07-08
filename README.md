@@ -129,6 +129,22 @@ This repository is for a project aimed at enhancing the management and tracking 
 5. We added many commands for the bot that we will describe in the slack_bot branch
 6. We tested the whole thing and it works!!
 
+
+## Day 6
+### To Do
+1. <del> To discuss further what are the plans for today <del>
+2. <del> To make cool fonts on the frontend. <del>
+3. <del> To make the frontend responsive and to be good in mobile. <del>
+4. <del> To test the deep sleep mode of the esp32.<del>
+5. <del> If it is possible and practicle to add the deep sleep. <del>
+
+### What we did
+1. We had a daily meet on which discussed the plan for the day.
+2. We made the frontend responsive and to look good.
+3. We made some features in the frontend that weren't added.
+4. We tested the deep sleep mode and we made it so it works with deep sleep.
+
+
 ## To be cheked
 - ngrok.com, https://www.qovery.com/
 - да се направят папки optionally за дните
