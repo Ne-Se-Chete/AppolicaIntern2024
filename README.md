@@ -117,14 +117,17 @@ This repository is for a project aimed at enhancing the management and tracking 
 ### To Do
 1. <del> To discuss further what are the plans for today <del>
 2. <del> To finish the functionalities of the bot <del>
-3. To make cool desing on the frontend
-4. To add some features to the bot (to be more useful)
-5. To test the whole project
+3. <del> To make cool desing on the frontend<del> 
+4. <del> To add some features to the bot (to be more useful)<del> 
+5. <del> To test the whole project<del> 
 
 ### What we did
 1. We had a daily meet on which discussed the plan for the day.
 2. We added the functionalities we started developing for the bot
 3. We started making the desing
+4. We made the desing to be cool
+5. We added many commands for the bot that we will describe in the slack_bot branch
+6. We tested the whole thing and it works!!
 
 ## To be cheked
 - ngrok.com, https://www.qovery.com/
