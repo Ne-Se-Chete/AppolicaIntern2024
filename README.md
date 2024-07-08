@@ -143,6 +143,7 @@ This repository is for a project aimed at enhancing the management and tracking 
 2. We made the frontend responsive and to look good.
 3. We made some features in the frontend that weren't added.
 4. We tested the deep sleep mode and we made it so it works with deep sleep.
+5. We added receipt recongition with the Slack Bot.
 
 
 ## To be cheked
