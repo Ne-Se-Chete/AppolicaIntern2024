@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"container/heap"
 	"encoding/json"
 	"encoding/base64"
@@ -216,12 +217,52 @@ func handleReceipt(client *slack.Client, cmd slack.SlashCommand) {
 	fmt.Printf("Image saved locally as: %s\n", fileName)
 	postMessage(client, cmd.ChannelID, "Image saved locally.")
 
-	//TODO: This doesn't work but with the python code it does
-	// result, err := detectImage(fileName)
-	// if err != nil {
-	// 	log.Fatalf("Error detecting image: %v", err)
-	// }
-	// postMessage(client, cmd.ChannelID, "Assistant:" + result)
+	description, err := getDescriptionFromAPI(fileName)
+	if err != nil {
+		postMessage(client, cmd.ChannelID, "Error getting image description from API.")
+		return
+	}
+
+	postMessage(client, cmd.ChannelID, "Image Description: "+description)
+}
+
+func getDescriptionFromAPI(imagePath string) (string, error) {
+	apiURL := "http://127.0.0.1:5000/describe-image"
+
+	// Create the JSON payload
+	payload := map[string]string{"image_path": imagePath}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("error marshaling JSON payload: %w", err)
+	}
+
+	// Send the POST request
+	resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return "", fmt.Errorf("error sending POST request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response body: %w", err)
+	}
+
+	// Parse the JSON response
+	var responseData map[string]string
+	err = json.Unmarshal(respBody, &responseData)
+	if err != nil {
+		return "", fmt.Errorf("error unmarshaling JSON response: %w", err)
+	}
+
+	// Check for an error in the response
+	if errorMsg, exists := responseData["error"]; exists {
+		return "", fmt.Errorf("API error: %s", errorMsg)
+	}
+
+	// Return the description from the response
+	return responseData["description"], nil
 }
 
 
