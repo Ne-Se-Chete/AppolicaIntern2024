@@ -337,11 +337,16 @@ func handleStart(client *slack.Client, cmd slack.SlashCommand) {
 	ordersEnabled = true
 	orderQueue = PriorityQueue{}
 
-	response := fmt.Sprintf("Order session started. You can place orders until %s.", orderDeadline.Format("15:04"))
+	response := fmt.Sprintf("Order session started <!here> . You can place orders until %s.", orderDeadline.Format("15:04"))
 	postMessage(client, cmd.ChannelID, response)
 
 	go func() {
-		time.Sleep(time.Until(orderDeadline))
+		timeUntilDeadline := time.Until(orderDeadline)
+		if timeUntilDeadline > 5*time.Minute {
+			time.Sleep(timeUntilDeadline - 5*time.Minute)
+			postMessage(client, cmd.ChannelID, "<!here> 5 minutes left to place your orders.")
+		}
+		time.Sleep(5 * time.Minute)
 		summarizeOrders(client, cmd.ChannelID)
 	}()
 }
