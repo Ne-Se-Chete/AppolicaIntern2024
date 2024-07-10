@@ -148,15 +148,24 @@ This repository is for a project aimed at enhancing the management and tracking 
 
 ## Day 7
 ### To Do
-1. <del> To discuss further what are the plans for today <del>
-2. To continue the work on the frontend. 
+1. <del> To discuss further what are the plans for today. <del>
+2. <del> To continue the work on the frontend. <del> 
 3. <del> To test the esp32 with batteries <del>
-4. To find better batteries and to buy a voltage regulator.
+4. <del> To find better batteries and to buy a voltage regulator.<del> 
 
 ### What we did
 1. We had a daily meet on which discussed the plan for the day.
 2. We fixed some bugs on the frontend.
 3. We tested the batteries and unfortunately they are too old and don't function as intended.
+
+
+## Day 8
+### To Do
+1. <del>To discuss further what are the plans for today.<del>
+2. To continue the work on the frontend. 
+3. To find replacement of the batteries.
+4. To refactor the bot code because we changed the DB diagram. 
+5. <del> To update the diagram. <del>
 
 
 ## To be cheked
