@@ -315,9 +315,6 @@ func encodeImage64(imagePath string) (string, error) {
 }
 
 
-
-
-
 func handleStart(client *slack.Client, cmd slack.SlashCommand) {
 	args := strings.Fields(cmd.Text)
 	if len(args) < 1 {
@@ -370,29 +367,13 @@ func handleOrder(client *slack.Client, cmd slack.SlashCommand) {
 		return
 	}
 
-	userID := getUserID("Pencho")
-	if userID == "" {
-		postMessage(client, cmd.ChannelID, "User ID not found.")
-		return
-	}
-
 	itemID := getItemID(item)
 	if itemID == "" {
 		postMessage(client, cmd.ChannelID, "Item not found.")
 		return
 	}
 
-	loc := time.FixedZone("EEST", 2*60*60)
-	startTime := time.Now().In(loc).Format("Jan 2, 2006 03:04 pm")
-
-	order := map[string]interface{}{
-		"ordered item": itemID,
-		"owner":        userID,
-		"quantity":     quantity,
-		"start time":   startTime,
-	}
-
-	sendOrder(order)
+	// sendOrder(order)
 
 	response := fmt.Sprintf("Order placed: %s %d", item, quantity)
 	postMessage(client, cmd.ChannelID, response)
@@ -631,17 +612,20 @@ func summarizeOrders(client *slack.Client, channelID string) {
 			"summed quantity": quantity,
 		}
 		sendOrderSummary(orderSummary)
-
 	}
 
 	summaryBuilder.WriteString("The order won't be received now - start a new order session with /start {time}.")
 
 	postMessage(client, channelID, summaryBuilder.String())
+
+	recentOrders := fetchRecentOrders()
+	log.Printf("Recent: %s", recentOrders)
+	sendRecentOrders(recentOrders)
 }
 
 func sendOrderSummary(orderSummary map[string]interface{}) {
 	client := &http.Client{}
-	url := os.Getenv("SERVER_TODAYS_ORDER")
+	url := os.Getenv("SERVER_ORDER")
 
 	orderSummaryJSON, err := json.Marshal(orderSummary)
 	if err != nil {
@@ -671,6 +655,122 @@ func sendOrderSummary(orderSummary map[string]interface{}) {
 	}
 
 	log.Println("Order summary sent successfully")
+}
+
+
+func fetchRecentOrders() []string {
+	client := &http.Client{}
+	url := os.Getenv("SERVER_ORDER")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		return nil
+	}
+
+	req.Header.Add("Authorization", "Bearer "+os.Getenv("BEARER_TOKEN"))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Failed to send request: %v", err)
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Error response from server: %v", resp.Status)
+		return nil
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read response body: %v", err)
+		return nil
+	}
+
+	var response struct {
+		Response struct {
+			Results []struct {
+				CreatedDate   string `json:"Created Date"`
+				ItemOrdered   string `json:"item ordered"`
+				SecondsToCook int    `json:"seconds to cook"`
+				SummedQuantity int   `json:"summed quantity"`
+				ID            string `json:"_id"`
+			} `json:"results"`
+		} `json:"response"`
+	}
+
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		log.Printf("Failed to unmarshal response: %v", err)
+		return nil
+	}
+
+	oneHourAgo := time.Now().Add(-1 * time.Hour)
+	var recentOrders []string
+	for _, order := range response.Response.Results {
+		createdDate, err := time.Parse(time.RFC3339, order.CreatedDate)
+		if err != nil {
+			log.Printf("Failed to parse date: %v", err)
+			continue
+		}
+		if createdDate.After(oneHourAgo) {
+			recentOrders = append(recentOrders, order.ID)
+		}
+	}
+
+	return recentOrders
+}
+
+func sendRecentOrders(orders []string) {
+	if len(orders) == 0 {
+		log.Println("No recent orders to send")
+		return
+	}
+
+	client := &http.Client{}
+	url := os.Getenv("SERVER_FULL_ORDER")
+
+    orderData := map[string]interface{}{
+        "orders": orders,
+    }
+
+    orderDataJSON, err := json.Marshal(orderData)
+    if err != nil {
+        log.Printf("Failed to marshal order data: %v", err)
+        return
+    }
+
+    req, err := http.NewRequest("POST", url, bytes.NewBuffer(orderDataJSON))
+    if err != nil {
+        log.Printf("Failed to create request: %v", err)
+        return
+    }
+
+    req.Header.Add("Authorization", "Bearer "+os.Getenv("BEARER_TOKEN"))
+    req.Header.Add("Content-Type", "application/json")
+
+    resp, err := client.Do(req)
+    if err != nil {
+        log.Printf("Failed to send request: %v", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    // Read and log the response body
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        log.Printf("Failed to read response body: %v", err)
+        return
+    }
+
+    if resp.StatusCode != http.StatusOK {
+        log.Printf("Error response from server: %v", resp.Status)
+        log.Printf("Response body: %s", string(body))
+        return
+    }
+
+    log.Println("Recent orders sent successfully")
 }
 
 
