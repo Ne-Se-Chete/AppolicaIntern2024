@@ -162,11 +162,20 @@ This repository is for a project aimed at enhancing the management and tracking 
 ## Day 8
 ### To Do
 1. <del>To discuss further what are the plans for today.<del>
-2. To continue the work on the frontend. 
-3. To find replacement of the batteries.
-4. To refactor the bot code because we changed the DB diagram. 
+2. <del>To continue the work on the frontend. <del>
+3. <del>To find replacement of the batteries. <del>
+4. <del>To refactor the bot code because we changed the DB diagram. <del>
 5. <del> To update the diagram. <del>
 
+### What we did
+1. We had a daily meet on which discussed the plan for the day.
+2. We continued the taks for the frontend.
+3. We discussed some ideas with our mentors and we came to the conclusion that we will use the batteries and nothing else. The options were:
+- Power bank - it "goes to sleep" when there is really low consumption and the esp32 can't be powered up when it is in deep sleep
+- Charger - there is no possibility to put a power strip where the charger will be plugged
+4. We changed the DB diagram and the new diagram is in the `images` folder. Now it is cleaner and has some added tables for our convenience.
+5. We updated the bot so it works with the new DB.
+6. We depricated the idea of having the receipt recognition because there is no way to predict how much each individual order will cost.
 
 ## To be cheked
 - ngrok.com, https://www.qovery.com/
