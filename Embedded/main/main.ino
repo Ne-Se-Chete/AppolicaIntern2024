@@ -24,7 +24,7 @@ const char* ssid = "#########";
 const char* password = "#########";
 const char* grillServerName = "https://#########.bubbleapps.io/#########/api/1.1/obj/#########";
 const char* grillStatus = "https://#########.bubbleapps.io/#########/api/1.1/wf/#########";
-const char* gasBottleWeight = "https://#########.bubbleapps.io/version-test/api/1.1/obj/#########";  // Replace with your actual endpoints
+const char* gasBottleWeight = "https://#########.bubbleapps.io/#########/api/1.1/obj/#########";  // Replace with your actual endpoints
 
 
 const char* bearerToken = "#########";
