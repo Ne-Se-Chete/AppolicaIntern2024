@@ -9,17 +9,25 @@
 #include <HTTPClient.h>
 #include <NTPClient.h> //install this library
 #include <WiFiUdp.h>
+#include <esp_sleep.h> // include for deep sleep
+#include <ArduinoJson.h>
+
+
 #define EEPROM_SIZE 16
-#define GAS_BOTTLE_WEIGHT 8000
-#define GAS_MAX_WEIGHT 8000
+int GAS_BOTTLE_WEIGHT;
+int GAS_MAX_WEIGHT;
+
+#define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP  45        /* Time ESP32 will go to sleep (in seconds) */
+
+const char* ssid = "#########";
+const char* password = "#########";
+const char* grillServerName = "https://#########.bubbleapps.io/#########/api/1.1/obj/#########";
+const char* grillStatus = "https://#########.bubbleapps.io/#########/api/1.1/wf/#########";
+const char* gasBottleWeight = "https://#########.bubbleapps.io/version-test/api/1.1/obj/#########";  // Replace with your actual endpoints
 
 
-const char* ssid = "############";
-const char* password = "###################";
-const char* grillServerName = "#########################/Grill";
-const char* grillStatus = "###########################/update-status";
-
-const char* bearerToken = "##############################";
+const char* bearerToken = "#########";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000);  // Update every 60 seconds
@@ -37,89 +45,141 @@ HX711_ADC LoadCell(HX711_dout, HX711_sck);
 const int calVal_eepromAdress = 0;
 unsigned long t = 0;
 float initialMeasurement = 0;
-int readingsForAverage = 10;
-const int serialPrintInterval = 500; //increase value to slow down serial print activity
+int readingsForAverage = 20;
+const int serialPrintInterval = 100; //increase value to slow down serial print activity
 int cooking = 0;
 float avrgReading;
+int hasStoppedCooking = 0;
+
+
+RTC_DATA_ATTR int newWeight;
+RTC_DATA_ATTR int rtcCooking = 0;
+RTC_DATA_ATTR time_t start_cooking_time;
+RTC_DATA_ATTR float rtcInitMeasurement = 0;
 
 void setup() {
   Serial.begin(115200); 
   delay(10);
   Serial.println();
+  initializeWifiAndTimeClient();
+
+  GAS_BOTTLE_WEIGHT = getGasBottleWeight();
+  GAS_MAX_WEIGHT = getGasMaxWeight();
+
+  Serial.print("Max Gas Weight: ");
+  Serial.println(GAS_MAX_WEIGHT);
+
+  Serial.print("Current Gas Bottle Weight: ");
+  Serial.println(GAS_BOTTLE_WEIGHT);
+
+  delay(1000);
+
+
   Serial.println("Starting...");
   setUpDisplay();
   startLoadCell();
-  // delay(1200);
-  initialMeasurement = averageReading(10);
+  if (rtcInitMeasurement == 0){
+    initialMeasurement = averageReading(20);
+    rtcInitMeasurement = initialMeasurement;
+  }else{
+    initialMeasurement = rtcInitMeasurement;
+  }
   displayValue(calculateGasLeft(initialMeasurement));
+
   Serial.print("Initial value: ");
   Serial.println(initialMeasurement);
-  initializeWifiAndTimeClient();
+
+  // If coming back from deep sleep, restore the state
+  if (rtcCooking) {
+    cooking = rtcCooking;
+    newWeight = averageReading(readingsForAverage);
+    Serial.println("Waking up from deep sleep");
+    Serial.print("Cooking state: ");
+    Serial.println(cooking);
+
+  }else if (cooking) {
+    Serial.println("Going to deep sleep");
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    esp_deep_sleep_start();
+  }
 }
 
 void loop() {
-  time_t start_cooking_time;
-  avrgReading = averageReading(readingsForAverage);
-  Serial.print("Average: ");
-  Serial.println(avrgReading);
+  if (!rtcCooking) {
+    avrgReading = averageReading(readingsForAverage);
+    if(avrgReading > initialMeasurement)
+      initialMeasurement = avrgReading; 
+    Serial.print("Average: ");
+    Serial.println(avrgReading);
 
-  if(!cooking) {
-    Serial.println("NOTTTTT cooking");
-    Serial.print("Initial: ");
-    Serial.println(initialMeasurement);
-    if(initialMeasurement - avrgReading > 8) {
-      delay(2000);
-      for(int i = 0; i < 3; i++) {
-        avrgReading = averageReading(readingsForAverage);
-        Serial.print("Average: ");
-        Serial.println(avrgReading);
-        if(initialMeasurement - avrgReading > 8)
-          cooking++;  
-      }
-      if(cooking > 1) {
-        Serial.println("Cooking++");
-        start_cooking_time = timeClient.getEpochTime();
-        post_start_cooking();
-        delay(1000);
-        displayValue(calculateGasLeft(avrgReading));
-      }
-      else {
-        cooking = 0;
+    if(!cooking) {
+      Serial.println("NOTTTTT cooking");
+      Serial.print("Initial: ");
+      Serial.println(initialMeasurement);
+      if(initialMeasurement - avrgReading > 8) {
+        delay(2000);
+        for(int i = 0; i < 3; i++) {
+          avrgReading = averageReading(readingsForAverage);
+          Serial.print("Average: ");
+          Serial.println(avrgReading);
+          if(initialMeasurement - avrgReading > 8)
+            cooking++;  
+        }
+        if(cooking > 1) {
+          Serial.println("Cooking++");
+          start_cooking_time = timeClient.getEpochTime();
+          post_start_cooking();
+          delay(1000);
+          displayValue(calculateGasLeft(avrgReading));
+        } else {
+          cooking = 0;
+        }
       }
     }
-    // else if(abs(initialMeasurement - avrgReading) < 2) {
-    //   initialMeasurement = avrgReading;
-    //   Serial.print("New initial: ");
-    //   Serial.println(initialMeasurement);
-    // }
+    newWeight = avrgReading;
   }
   
-  int hasStoppedCooking = 0;
-  int newWeight = avrgReading;
+  hasStoppedCooking = 0;
+  
+  while (cooking) {
 
-  while(cooking) {
-    Serial.println("cooking");
-    //5,6 gr/min
-    delay(45000);// da se naprawi min minuta
-    int tmpWeight = averageReading(readingsForAverage);
-    Serial.print("NEW_WEIGHT and TEMP_WEIGHT: ");
-    Serial.print(newWeight);
-    Serial.print("  ");
-    Serial.println(tmpWeight);
-    if(newWeight - tmpWeight < 6) {
-      hasStoppedCooking++;
-    }
-    else {
-      newWeight = tmpWeight;
-    }
+    for(int i = 0; i < 2; i++) {
+      Serial.println("Cooking");
+      // esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+      // esp_deep_sleep_start();
+      delay(20000);
+      // Check weight after sleep period
+      int tmpWeight = averageReading(readingsForAverage);
+      Serial.print("NEW_WEIGHT and TEMP_WEIGHT: ");
+      Serial.print(newWeight);
+      Serial.print("  ");
+      Serial.println(tmpWeight);
+      if(newWeight - tmpWeight < 6) {
+        hasStoppedCooking++;
+      } else {
+        newWeight = tmpWeight;
+        // hasStoppedCooking = 0;
+      }
 
-    if(hasStoppedCooking > 1) {
-      post_to_grill_endpoint(initialMeasurement, newWeight, start_cooking_time);
-      initialMeasurement = tmpWeight;
-      cooking = 0;
-      displayValue(calculateGasLeft(newWeight));
+      if(hasStoppedCooking > 1) {
+        post_to_grill_endpoint(initialMeasurement, newWeight, start_cooking_time);
+        initialMeasurement = tmpWeight;
+        cooking = 0;
+        rtcCooking = 0;
+
+        post_end_cooking();
+        displayValue(calculateGasLeft(newWeight));
+      }
+    }
+     if(hasStoppedCooking <= 1) {
+      // Save state and go to deep sleep
+      rtcCooking = cooking;
+      esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+      esp_deep_sleep_start();
     }
   }
+
+  delay(1000);  // Short delay to prevent rapid looping
 }
 
 void calibrate() {
@@ -189,8 +249,7 @@ void calibrate() {
         Serial.println(calVal_eepromAdress);
         _resume = true;
 
-      }
-      else if (inByte == 'n') {
+      } else if (inByte == 'n') {
         Serial.println("Value not saved to EEPROM");
         _resume = true;
       }
@@ -237,14 +296,12 @@ void startLoadCell() {
   if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
     Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
     while (1);
-  }
-  else {
+  } else {
     cal_val_eeprom = EEPROM.readFloat(calVal_eepromAdress);
     if(cal_val_eeprom != 0) {
         changeFromSavedCalFactor();
         Serial.println("Startup is complete");
-    }
-    else {
+    } else {
       Serial.println("The sensors should be calibrated!");
       while (!LoadCell.update());
         calibrate();
@@ -341,13 +398,17 @@ void my_post_request(String jsonData, const char* serverName) {
 void post_to_grill_endpoint(float grill_start_gas, float grill_end_gas, time_t start_cooking_time) {
   // Format the current time and end time
   time_t end_cooking_time = timeClient.getEpochTime();
+  float average_consumption = (grill_start_gas-grill_end_gas)/(end_cooking_time-start_cooking_time);
+
   char end_time[20];
   char start_time[20];
   strftime(end_time, sizeof(end_time), "%Y-%m-%d %H:%M:%S", localtime(&end_cooking_time));
   strftime(start_time, sizeof(start_time), "%Y-%m-%d %H:%M:%S", localtime(&start_cooking_time));
 
+
   // Create the JSON object
   String jsonData = String("{\"grill start gas\":") + grill_start_gas +
+                    ",\"average_consumption\":" + average_consumption +
                     ",\"grill end gas\":" + grill_end_gas +
                     ",\"start time\":\"" + start_time + "\"" +
                     ",\"end time\":\"" + end_time + "\"}";
@@ -372,3 +433,79 @@ void post_start_cooking() {
   }
 }
 
+void post_end_cooking() {
+  // Create the JSON object
+  String jsonData = String("{\"status\": \"no\"}");
+
+  // Send the data to the server
+  if (WiFi.status() == WL_CONNECTED) {
+    my_post_request(jsonData, grillStatus);
+  } else {
+    Serial.println("Error in WiFi connection");
+  }
+}
+
+
+
+
+float getGasMaxWeight() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(gasBottleWeight);
+    http.addHeader("Authorization", String("Bearer ") + bearerToken);
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode == 200) {
+      String payload = http.getString();
+      StaticJsonDocument<1024> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+
+      if (!error) {
+        float maxWeight = doc["response"]["results"][0]["max_weight"];
+        http.end();
+        return maxWeight*1000;
+      } else {
+        Serial.print("Failed to parse JSON: ");
+        Serial.println(error.c_str());
+      }
+    } else {
+      Serial.print("HTTP GET request failed, error code: ");
+      Serial.println(httpResponseCode);
+    }
+    http.end();
+  } else {
+    Serial.println("WiFi is not connected");
+  }
+  return 8000; // default value if request fails or not connected to Wi-Fi
+}
+
+float getGasBottleWeight() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(gasBottleWeight);
+    http.addHeader("Authorization", String("Bearer ") + bearerToken);
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode == 200) {
+      String payload = http.getString();
+      StaticJsonDocument<1024> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+
+      if (!error) {
+        float weight = doc["response"]["results"][0]["weight"];
+        http.end();
+        return weight * 1000;
+      } else {
+        Serial.print("Failed to parse JSON: ");
+        Serial.println(error.c_str());
+      }
+    } else {
+      Serial.print("HTTP GET request failed, error code: ");
+      Serial.println(httpResponseCode);
+    }
+    http.end();
+  } else {
+    Serial.println("WiFi is not connected");
+  }
+  return 8000; // default value if request fails or not connected to Wi-Fi
+}
