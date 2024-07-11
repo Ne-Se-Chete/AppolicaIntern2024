@@ -181,13 +181,18 @@ This repository is for a project aimed at enhancing the management and tracking 
 ### To Do
 1. <del>To discuss further what are the plans for today.<del>
 2. <del>To continue the work on the frontend. <del>
-3. To upload the updated ESP32 code so it gets the gas weight from the db.
-4. To set up the batteries.
+3. <del>To upload the updated ESP32 code so it gets the gas weight from the db.<del>
+4. <del> To set up the batteries.<del>
 5. <del> To merge the branches and resolve merge conflicts.<del>
 
+### What we did
+1. We had a daily meet on which discussed the plan for the day.
+2. We continued the taks for the frontend and we finished the important tasks.
+3. We merged the branches.
+4. We fixed some issues with the hardware.
+5. We made a log in system and tested it for bugs.
+6. We tested the bot and the esp32 code.
+7. We are making the presentation for tommorrow.
 
 ## To be cheked
 - ngrok.com, https://www.qovery.com/
-- да се направят папки optionally за дните
-- ДА има в main page-а multiple choice dropdown Който да ни казва кой е активния и така да направим в базата данни да се запазват и после да се пращат
-- как да се направи bubble io-то за изчисляване на данни - дали да се записва в база данни или някак по друг начин
