@@ -177,6 +177,14 @@ This repository is for a project aimed at enhancing the management and tracking 
 5. We updated the bot so it works with the new DB.
 6. We depricated the idea of having the receipt recognition because there is no way to predict how much each individual order will cost.
 
+## Day 9
+### To Do
+1. <del>To discuss further what are the plans for today.<del>
+2. <del>To continue the work on the frontend. <del>
+3. To upload the updated ESP32 code so it gets the gas weight from the db.
+4. To set up the batteries.
+
+
 ## To be cheked
 - ngrok.com, https://www.qovery.com/
 - да се направят папки optionally за дните
