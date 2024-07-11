@@ -183,6 +183,7 @@ This repository is for a project aimed at enhancing the management and tracking 
 2. <del>To continue the work on the frontend. <del>
 3. To upload the updated ESP32 code so it gets the gas weight from the db.
 4. To set up the batteries.
+5. <del> To merge the branches and resolve merge conflicts.<del>
 
 
 ## To be cheked
