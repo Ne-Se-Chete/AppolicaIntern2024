@@ -507,5 +507,5 @@ float getGasBottleWeight() {
   } else {
     Serial.println("WiFi is not connected");
   }
-  return 8000; // default value if request fails or not connected to Wi-Fi 
+  return 8000; // default value if request fails or not connected to Wi-Fi
 }
