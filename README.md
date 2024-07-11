@@ -11,7 +11,7 @@ This repository is for a project aimed at enhancing the management and tracking 
    - [ ] Which ones have been rotated
    - [ ] How many rotations
 3. [ ] Track the history of the cooking
-4. [ ] Set up notifications (when to refill, if you've forgotten)
+4. [ ] Set up notifications
 
 ### Bonus Tasks
 
