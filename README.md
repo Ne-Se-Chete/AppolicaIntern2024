@@ -2,7 +2,7 @@
 
 ### Project Description
 
-This repository is for a project aimed at enhancing the management and tracking of BBQ proccess. The application will feature comprehensive notifications, historical data tracking, and estimation tools to optimize the cooking and consumption experience. It will include integrations with Slack, a webpage and Slack bot for order management, and additional predictive and recommendation features. The goal is to provide the user how many kgs are left in the gas tank and when it must be refiled.
+This repository is for a project aimed at enhancing the management and tracking of BBQ process. The application will feature comprehensive notifications, historical data tracking, and estimation tools to optimize the cooking and consumption experience. It will include integrations with Slack, a webpage and Slack bot for order management, and additional predictive and recommendation features. The goal is to provide the user with how many kgs are left in the gas tank and when it must be refiled.
 
 ### Features of the project
 
@@ -46,7 +46,7 @@ This repository is for a project aimed at enhancing the management and tracking 
 
 2. We will be working on a project called "Smart Scale". The idea is described below/higher
 
-3. For the software Bobi and Moni will be resposible and for the hardware - Yaskata and Valeri
+3. For the software Bobi and Moni will be responsible and for the hardware - Yaskata and Valeri
 
 4. We will be using:
 - Bubble io for the frontend, backend and the DB
@@ -58,8 +58,8 @@ This repository is for a project aimed at enhancing the management and tracking 
 6. We have made a daily plan which includes:
 - daily meetings at 10:00
 - following the plan
-- helping eachother when we have problems
-- every night to write a short description of what we did
+- helping each other when we have problems
+- every night write a short description of what we did
 
 
 ## Day 2
@@ -71,8 +71,8 @@ This repository is for a project aimed at enhancing the management and tracking 
 5. <del>To discuss further the idea for the software<del>
 
 ### What we did
-1. We had daily meeting on which we discussed the plan for the day and we made some changes
-2. We find a bug with the sensors which we fixed
+1. We had daily meeting in which we discussed the plan for the day and we made some changes
+2. We found a bug with the sensors which we fixed
 3. We made the DB and we tested the connection to it
 4. We fixed the DB schematic and we have ideas for future expansion
 
@@ -88,13 +88,13 @@ This repository is for a project aimed at enhancing the management and tracking 
 7. <del>To connect the esp32 to the backend <del>
 
 ### What we did
-1. We had a daily meet on which discussed the plan for the day.
-2. The 3D components were a little bigger so we made them smaller with a sandpaper.
-3. The scale had a little off-set because it wasn't levered properly but when we made it with a wooden board and the sensors with the 3D printed parts it was much better.
-4. We made some basic desinges on how the frontend would look like
+1. We had a daily meeting to discuss the plan for the day.
+2. The 3D components were a little bigger so we made them smaller with sandpaper.
+3. The scale was slightly off-set because it wasn't leveled properly but when we made it with a wooden board and the sensors with the 3D printed parts it was much better.
+4. We made some basic designs on how the frontend would look like
 5. We made the backend endpoints so we can add values to the DB
 6. We made a basic code that can access the bubble io's DB. 
-7. Made some features with the bot - it can now recieve orders and add them to the db
+7. Made some features with the bot - it can now receive orders and add them to the db
 
 
 ## Day 4
@@ -105,10 +105,10 @@ This repository is for a project aimed at enhancing the management and tracking 
 4. <del>To fix the frontend - to display orders history and orders for the home page <del>
 
 ### What we did
-1. We had a daily meet on which discussed the plan for the day.
-2. We finished the code for the ESP32 - now it can display the code to the display, it can measure with precision to 1% what is the change of the kilograms and to send this to the backend.
+1. We had a daily meeting on which we discussed the plan for the day.
+2. We finished the code for the ESP32 - now it can display the code to the display, it can measure with precision to 1% what is the change of the kilograms and send this to the backend.
 3. We can now display the on the frontend the data.
-4. We made some pages including - homepage (which will hold the data for the current cooking session), hisotry gas (which will display the usage of the gas and time time when the grill was working), history order (which will display the last 4 orders and who ordered them) and single grill history.
+4. We made some pages including - homepage (which will hold the data for the current cooking session), hisotry gas (which will display the usage of the gas and time when the grill was working), history order (which will display the last 4 orders and who ordered them) and single grill history.
 5. We start developing the bot functionalities for starting a new order and then finishing it.
 6. We changed ![the struct of the DB](https://github.com/Ne-Se-Chete/AppolicaIntern2024/blob/main/images/Bubble_io_DB.png) again because we needed more things to add.
 
@@ -122,10 +122,10 @@ This repository is for a project aimed at enhancing the management and tracking 
 5. <del> To test the whole project<del> 
 
 ### What we did
-1. We had a daily meet on which discussed the plan for the day.
+1. We had a daily meeting to discuss the plan for the day.
 2. We added the functionalities we started developing for the bot
-3. We started making the desing
-4. We made the desing to be cool
+3. We started making the design
+4. We made the design to be cool
 5. We added many commands for the bot that we will describe in the slack_bot branch
 6. We tested the whole thing and it works!!
 
@@ -136,14 +136,14 @@ This repository is for a project aimed at enhancing the management and tracking 
 2. <del> To make cool fonts on the frontend. <del>
 3. <del> To make the frontend responsive and to be good in mobile. <del>
 4. <del> To test the deep sleep mode of the esp32.<del>
-5. <del> If it is possible and practicle to add the deep sleep. <del>
+5. <del> If it is possible and practical to add the deep sleep. <del>
 
 ### What we did
-1. We had a daily meet on which discussed the plan for the day.
-2. We made the frontend responsive and to look good.
+1. We had a daily meeting on which we discussed the plan for the day.
+2. We made the frontend responsive and look good.
 3. We made some features in the frontend that weren't added.
 4. We tested the deep sleep mode and we made it so it works with deep sleep.
-5. We added receipt recongition with the Slack Bot.
+5. We added receipt recognition with the Slack Bot.
 
 
 ## Day 7
@@ -154,7 +154,7 @@ This repository is for a project aimed at enhancing the management and tracking 
 4. <del> To find better batteries and to buy a voltage regulator.<del> 
 
 ### What we did
-1. We had a daily meet on which discussed the plan for the day.
+1. We had a daily meeting to discuss the plan for the day.
 2. We fixed some bugs on the frontend.
 3. We tested the batteries and unfortunately they are too old and don't function as intended.
 
@@ -168,14 +168,14 @@ This repository is for a project aimed at enhancing the management and tracking 
 5. <del> To update the diagram. <del>
 
 ### What we did
-1. We had a daily meet on which discussed the plan for the day.
-2. We continued the taks for the frontend.
+1. We had a daily meeting to discuss the plan for the day.
+2. We continued the tasks for the frontend.
 3. We discussed some ideas with our mentors and we came to the conclusion that we will use the batteries and nothing else. The options were:
 - Power bank - it "goes to sleep" when there is really low consumption and the esp32 can't be powered up when it is in deep sleep
 - Charger - there is no possibility to put a power strip where the charger will be plugged
 4. We changed the DB diagram and the new diagram is in the `images` folder. Now it is cleaner and has some added tables for our convenience.
 5. We updated the bot so it works with the new DB.
-6. We depricated the idea of having the receipt recognition because there is no way to predict how much each individual order will cost.
+6. We deprecated the idea of having receipt recognition because there is no way to predict how much each individual order will cost.
 
 ## Day 9
 ### To Do
@@ -186,13 +186,13 @@ This repository is for a project aimed at enhancing the management and tracking 
 5. <del> To merge the branches and resolve merge conflicts.<del>
 
 ### What we did
-1. We had a daily meet on which discussed the plan for the day.
-2. We continued the taks for the frontend and we finished the important tasks.
+1. We had a daily meeting to discuss the plan for the day.
+2. We continued the task for the frontend and we finished the important tasks.
 3. We merged the branches.
 4. We fixed some issues with the hardware.
-5. We made a log in system and tested it for bugs.
+5. We made a login system and tested it for bugs.
 6. We tested the bot and the esp32 code.
-7. We are making the presentation for tommorrow.
+7. We are making the presentation for tomorrow.
 
 ## To be cheked
 - ngrok.com, https://www.qovery.com/
