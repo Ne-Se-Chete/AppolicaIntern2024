@@ -108,7 +108,7 @@ This repository is for a project aimed at enhancing the management and tracking 
 1. We had a daily meeting on which we discussed the plan for the day.
 2. We finished the code for the ESP32 - now it can display the code to the display, it can measure with precision to 1% what is the change of the kilograms and send this to the backend.
 3. We can now display the on the frontend the data.
-4. We made some pages including - homepage (which will hold the data for the current cooking session), hisotry gas (which will display the usage of the gas and time when the grill was working), history order (which will display the last 4 orders and who ordered them) and single grill history.
+4. We made some pages including - homepage (which will hold the data for the current cooking session), history gas (which will display the usage of the gas and time time when the grill was working), history order (which will display the last 4 orders and who ordered them) and single grill history.
 5. We start developing the bot functionalities for starting a new order and then finishing it.
 6. We changed ![the struct of the DB](https://github.com/Ne-Se-Chete/AppolicaIntern2024/blob/main/images/Bubble_io_DB.png) again because we needed more things to add.
 
@@ -192,7 +192,14 @@ This repository is for a project aimed at enhancing the management and tracking 
 4. We fixed some issues with the hardware.
 5. We made a login system and tested it for bugs.
 6. We tested the bot and the esp32 code.
-7. We are making the presentation for tomorrow.
+7. We are making the presentation for tommorrow.
+
+## Day 10
+### To do
+1. <del>To test the whole project and to make a demo <del>
+
+### What we did
+1. We tested everything, it worked, we made demo and we ate :)
 
 ## To be cheked
 - ngrok.com, https://www.qovery.com/
